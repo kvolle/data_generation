@@ -1,17 +1,15 @@
 import numpy as np
 import tensorflow as tf
 import cv2
-from datasets import dataclass as data
+import sys
 
-import matplotlib.pyplot as plt
-from mpl_toolkits.mplot3d import Axes3D
-
-filename = 'source/output.avi'
-key_frames = 50
+filename = 'source/nao_output.avi'
+key_frames = 5000
 max_pixel_offset = 2
 max_time_offset = 2
 image_size = 28
 number_of_matches = 5
+percentage_matching = 50
 
 def _bytes_feature(value):
   """Returns a bytes_list from a string / byte."""
@@ -26,8 +24,8 @@ def _int64_feature(value):
   return tf.train.Feature(int64_list=tf.train.Int64List(value=[value]))
 
 def serialize(img):
-    assert img.size == image_size*image_size
-    img.reshape([img.size])
+    #assert img.size == image_size*image_size # Removed this cause of shape issues
+    img = img.reshape([img.size])
     return tf.compat.as_bytes(img.tostring())
 
 cap = cv2.VideoCapture(filename)
@@ -43,10 +41,15 @@ while(cap.isOpened()):
         h_channel = np.copy(frame_hsv[:, :, 0])
         s_channel = np.copy(frame_hsv[:, :, 1])
         v_channel = np.copy(frame_hsv[:, :, 2])
-
+        #print("H: "+str(h_channel.min()) + " - " + str(h_channel.max()) + ": " + str(h_channel.mean()))
+        #print("S: "+str(s_channel.min()) + " - " + str(s_channel.max()) + ": " + str(s_channel.mean()))
+        #print("V: "+str(v_channel.min()) + " - " + str(v_channel.max()) + ": " + str(v_channel.mean()))
         s_channel = np.divide(s_channel,255.)
         custom = np.multiply(h_channel, s_channel) + np.multiply(1 -s_channel, v_channel)
-        custom = custom / 255
+        custom = np.round(custom).astype(dtype=int)
+        #print("C: "+str(custom.min()) + " - " + str(custom.max()) + ": " + str(custom.mean()))
+
+#        custom = custom / 255
 
         color_set.append(np.asarray(frame))
         gray_set.append(np.asarray(gray))
@@ -61,39 +64,78 @@ while(cap.isOpened()):
 cap.release()
 cv2.destroyAllWindows()
 
-custom_array = np.asarray(custom_set)
-color_array = np.asarray(color_set)
-gray_array = np.asarray(gray_set)
+custom_array = np.asarray(custom_set, dtype=int)
+color_array = np.asarray(color_set, dtype=int)
+gray_array = np.asarray(gray_set, dtype=int)
 # Order of arguments:
 # 0 - Frame
 # 1 - Row
 # 2 - Column
 # 3 - Channel (optional)
 set_info = custom_array.shape
-color_dataset=[]
-gray_dataset=[]
-custom_dataset=[]
+
+# open the TFRecords files
+color_filename = 'datasets/color.tfrecords'
+color_writer = tf.python_io.TFRecordWriter(color_filename)
+custom_filename = 'datasets/custom.tfrecords'
+custom_writer = tf.python_io.TFRecordWriter(custom_filename)
+gray_filename = 'datasets/gray.tfrecords'
+gray_writer = tf.python_io.TFRecordWriter(gray_filename)
 
 for i in range(key_frames):
-    t_mean = np.random.randint(max_time_offset, set_info[0]-max_time_offset)
-    x_mean = np.random.randint(max_pixel_offset, set_info[1]-image_size-max_pixel_offset)
-    y_mean = np.random.randint(max_pixel_offset, set_info[2]-image_size-max_pixel_offset)
-    custom_a = []
-    gray_a = []
-    color_a = []
-    for j in range(number_of_matches):
-        x = np.random.randint(x_mean-max_pixel_offset, x_mean+max_pixel_offset)
-        y = np.random.randint(y_mean-max_pixel_offset, y_mean+max_pixel_offset)
-        t = np.random.randint(t_mean-max_time_offset, t_mean+max_time_offset)
-        custom_a.append(custom_array[t, x:x+image_size, y:y+image_size])
-        color_a.append(color_array[t, x:x+image_size, y:y+image_size, :])
-        gray_a.append(gray_array[t, x:x+image_size, y:y+image_size])
-    custom_dataset.append(custom_a)
-    gray_dataset.append(gray_a)
-    color_dataset.append(gray_a)
+    if np.random.randint(0,99) < percentage_matching:
+        # Generate an example of matched pair
+        t_mean = np.random.randint(max_time_offset, set_info[0] - max_time_offset)
+        x_mean = np.random.randint(max_pixel_offset, set_info[1] - image_size - max_pixel_offset)
+        y_mean = np.random.randint(max_pixel_offset, set_info[2] - image_size - max_pixel_offset)
+        [x_a, x_b] = np.random.randint(x_mean - max_pixel_offset, x_mean + max_pixel_offset, 2)
+        [y_a, y_b] = np.random.randint(y_mean - max_pixel_offset, y_mean + max_pixel_offset, 2)
+        [t_a, t_b] = np.random.randint(t_mean - max_time_offset, t_mean + max_time_offset, 2)
+        match = True
+    else:
+        # Generate an example of unmatched pair
+        [t_a, t_b] = np.random.randint(max_time_offset, set_info[0] - max_time_offset, 2)
+        [x_a, x_b] = np.random.randint(max_pixel_offset, set_info[1] - image_size - max_pixel_offset, 2)
+        [y_a, y_b] = np.random.randint(max_pixel_offset, set_info[2] - image_size - max_pixel_offset, 2)
+        match = False
+    custom_img_a = serialize(custom_array[t_a, x_a:x_a + image_size, y_a:y_a + image_size])
+    color_img_a = serialize(color_array[t_a, x_a:x_a + image_size, y_a:y_a + image_size, 0])
+    gray_img_a = serialize(gray_array[t_a, x_a:x_a + image_size, y_a:y_a + image_size])
 
-set_obj = data.siamese()
-set_obj.populate_data(color=color_dataset, gray=gray_dataset, custom=custom_dataset)
-set_obj.save_set()
-tah = set_obj.get_unmatched_pair('custom')
+    custom_img_b = serialize(custom_array[t_b, x_b: x_b + image_size, y_b:y_b + image_size])
+    color_img_b = serialize(color_array[t_b, x_b: x_b + image_size, y_b:y_b + image_size, 0])
+    gray_img_b = serialize(gray_array[t_b, x_b: x_b + image_size, y_b:y_b + image_size])
+    cu = sys.getsizeof(custom_array[0, 1, 2])
+    co = sys.getsizeof(color_array[0, 1, 2, 0])
+    gr = sys.getsizeof(gray_array[0, 1, 2])
+
+    custom_features = {
+        'img_a': _bytes_feature(custom_img_a),
+        'img_b': _bytes_feature(custom_img_b),
+        'match': _int64_feature(match)
+    }
+    color_features = {
+        'img_a': _bytes_feature(color_img_a),
+        'img_b': _bytes_feature(color_img_b),
+        'match': _int64_feature(match)
+    }
+    gray_features = {
+        'img_a': _bytes_feature(gray_img_a),
+        'img_b': _bytes_feature(gray_img_b),
+        'match': _int64_feature(match)
+    }
+
+    # Create an example protocol buffer
+    color_example = tf.train.Example(features=tf.train.Features(feature=color_features))
+    custom_example = tf.train.Example(features=tf.train.Features(feature=custom_features))
+    gray_example = tf.train.Example(features=tf.train.Features(feature=gray_features))
+
+    # Serialize to string and write on the file
+    color_writer.write(color_example.SerializeToString())
+    custom_writer.write(custom_example.SerializeToString())
+    gray_writer.write(gray_example.SerializeToString())
+
+color_writer.close()
+custom_writer.close()
+gray_writer.close()
 print("Fin")
