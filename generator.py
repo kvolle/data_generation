@@ -4,7 +4,7 @@ import cv2
 import sys
 
 filename = 'source/nao_output.avi'
-key_frames = 5000
+key_frames = 10000
 max_pixel_offset = 2
 max_time_offset = 2
 image_size = 28
