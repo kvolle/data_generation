@@ -28,7 +28,9 @@ def serialize(img):
     img = img.reshape([img.size])
     return tf.compat.as_bytes(img.tostring())
 
-def make_tfrecords(filename)
+def make_tfrecords(folder):
+    filename = folder+"/%05D.jpg"
+
     cap = cv2.VideoCapture(filename)
     color_set = []
     gray_set = []
@@ -129,9 +131,6 @@ def make_tfrecords(filename)
     custom_writer.close()
     gray_writer.close()
 
-for filename in os.listdir(datasets/TrackingDatasets):
-    if filename.endswith(""):
-        make_tfrecords(filename)
-    else:
-        continue
+for folder in os.listdir('source/DAVIS/JPEGImages/480p'):
+    make_tfrecords(folder)
 print("Fin")
