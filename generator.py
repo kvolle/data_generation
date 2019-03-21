@@ -28,8 +28,9 @@ def serialize(img):
     img = img.reshape([img.size])
     return tf.compat.as_bytes(img.tostring())
 
-def make_tfrecords(folder):
-    filename = folder+"/%05D.jpg"
+def make_tfrecords(srcdir, folder):
+    filename = srcdir+folder+"/%5d.jpg"
+    print(filename)
 
     cap = cv2.VideoCapture(filename)
     color_set = []
@@ -50,7 +51,7 @@ def make_tfrecords(folder):
             color_set.append(np.asarray(frame))
             gray_set.append(np.asarray(gray))
             custom_set.append(np.asarray(custom))
-      break
+            #break
         else:
             break
 
@@ -67,13 +68,12 @@ def make_tfrecords(folder):
     set_info = custom_array.shape
 
     # open the TFRecords files
-    color_filename = 'datasets/color_'+filename+'.tfrecords'
+    color_filename = 'datasets/color_'+folder+'.tfrecords'
     color_writer = tf.python_io.TFRecordWriter(color_filename)
-    custom_filename = 'datasets/custom_'+filename+'.tfrecords'
+    custom_filename = 'datasets/custom_'+folder+'.tfrecords'
     custom_writer = tf.python_io.TFRecordWriter(custom_filename)
-    gray_filename = 'datasets/gray_'+filename+'.tfrecords'
+    gray_filename = 'datasets/gray_'+folder+'.tfrecords'
     gray_writer = tf.python_io.TFRecordWriter(gray_filename)
-
     for i in range(key_frames):
         if np.random.randint(0,99) < percentage_matching:
             # Generate an example of matched pair
@@ -130,7 +130,8 @@ def make_tfrecords(folder):
     color_writer.close()
     custom_writer.close()
     gray_writer.close()
-
-for folder in os.listdir('source/DAVIS/JPEGImages/480p'):
-    make_tfrecords(folder)
+srcdir = './source/DAVIS/JPEGImages/480p/'
+for folder in os.listdir(srcdir):
+    print(folder)
+    make_tfrecords(srcdir, folder)
 print("Fin")
