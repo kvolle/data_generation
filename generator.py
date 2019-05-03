@@ -4,10 +4,11 @@ import cv2
 import sys
 import os
 
-key_frames = 10000
-max_pixel_offset = 2
-max_time_offset = 2
-image_size = 28
+key_frames = 1
+overlap_coeff = 0.2 # Set such that at least 64% of the pixels overlap for matches
+
+H = 480
+W = 640
 number_of_matches = 5
 percentage_matching = 50
 
@@ -77,29 +78,29 @@ def make_tfrecords(srcdir, folder):
     for i in range(key_frames):
         if np.random.randint(0,99) < percentage_matching:
             # Generate an example of matched pair
-            t_mean = np.random.randint(max_time_offset, set_info[0] - max_time_offset)
-            x_mean = np.random.randint(max_pixel_offset, set_info[1] - image_size - max_pixel_offset)
-            y_mean = np.random.randint(max_pixel_offset, set_info[2] - image_size - max_pixel_offset)
-            [x_a, x_b] = np.random.randint(x_mean - max_pixel_offset, x_mean + max_pixel_offset, 2)
-            [y_a, y_b] = np.random.randint(y_mean - max_pixel_offset, y_mean + max_pixel_offset, 2)
-            [t_a, t_b] = np.random.randint(t_mean - max_time_offset, t_mean + max_time_offset, 2)
+            t_a = np.random.randint(0, set_info[0])
+            x_a = np.random.randint(overlap_coeff*W, set_info[1] - (1.+overlap_coeff)*W)
+            y_a = np.random.randint(overlap_coeff*H, set_info[2] - (1.+overlap_coeff)*H)
+            x_b = np.random.randint(x_a - overlap_coeff*W, x_a + overlap_coeff*W)
+            y_b = np.random.randint(y_a - overlap_coeff*H, y_a +overlap_coeff*H)
+            t_b = t_a
             #x_b = x_a
             #y_b = y_a
             #t_b = t_a
             match = True
         else:
             # Generate an example of unmatched pair
-            [t_a, t_b] = np.random.randint(max_time_offset, set_info[0] - max_time_offset, 2)
-            [x_a, x_b] = np.random.randint(max_pixel_offset, set_info[1] - image_size - max_pixel_offset, 2)
-            [y_a, y_b] = np.random.randint(max_pixel_offset, set_info[2] - image_size - max_pixel_offset, 2)
+            [t_a, t_b] = np.random.randint(0, set_info[0] , 2)
+            [x_a, x_b] = np.random.randint(0, set_info[1] - W, 2)
+            [y_a, y_b] = np.random.randint(0, set_info[2] - H, 2)
             match = False
-        custom_img_a = serialize(custom_array[t_a, x_a:x_a + image_size, y_a:y_a + image_size])
-        color_img_a = serialize(color_array[t_a, x_a:x_a + image_size, y_a:y_a + image_size, 0:3])
-        gray_img_a = serialize(gray_array[t_a, x_a:x_a + image_size, y_a:y_a + image_size])
+        custom_img_a = serialize(custom_array[t_a, x_a:x_a + W, y_a:y_a + H])
+        color_img_a = serialize(color_array[t_a, x_a:x_a + W, y_a:y_a + H, 0:3])
+        gray_img_a = serialize(gray_array[t_a, x_a:x_a +W, y_a:y_a + H])
 
-        custom_img_b = serialize(custom_array[t_b, x_b: x_b + image_size, y_b:y_b + image_size])
-        color_img_b = serialize(color_array[t_b, x_b: x_b + image_size, y_b:y_b + image_size, 0:3])
-        gray_img_b = serialize(gray_array[t_b, x_b: x_b + image_size, y_b:y_b + image_size])
+        custom_img_b = serialize(custom_array[t_b, x_b: x_b + W, y_b:y_b + H])
+        color_img_b = serialize(color_array[t_b, x_b: x_b + W, y_b:y_b + H, 0:3])
+        gray_img_b = serialize(gray_array[t_b, x_b: x_b + W, y_b:y_b + H])
         cu = sys.getsizeof(custom_array[0, 1, 2])
         co = sys.getsizeof(color_array[0, 1, 2, 0])
         gr = sys.getsizeof(gray_array[0, 1, 2])
