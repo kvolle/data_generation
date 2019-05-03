@@ -83,6 +83,9 @@ def make_tfrecords(srcdir, folder):
             [x_a, x_b] = np.random.randint(x_mean - max_pixel_offset, x_mean + max_pixel_offset, 2)
             [y_a, y_b] = np.random.randint(y_mean - max_pixel_offset, y_mean + max_pixel_offset, 2)
             [t_a, t_b] = np.random.randint(t_mean - max_time_offset, t_mean + max_time_offset, 2)
+            #x_b = x_a
+            #y_b = y_a
+            #t_b = t_a
             match = True
         else:
             # Generate an example of unmatched pair
@@ -91,11 +94,11 @@ def make_tfrecords(srcdir, folder):
             [y_a, y_b] = np.random.randint(max_pixel_offset, set_info[2] - image_size - max_pixel_offset, 2)
             match = False
         custom_img_a = serialize(custom_array[t_a, x_a:x_a + image_size, y_a:y_a + image_size])
-        color_img_a = serialize(color_array[t_a, x_a:x_a + image_size, y_a:y_a + image_size, 0])
+        color_img_a = serialize(color_array[t_a, x_a:x_a + image_size, y_a:y_a + image_size, 0:3])
         gray_img_a = serialize(gray_array[t_a, x_a:x_a + image_size, y_a:y_a + image_size])
 
         custom_img_b = serialize(custom_array[t_b, x_b: x_b + image_size, y_b:y_b + image_size])
-        color_img_b = serialize(color_array[t_b, x_b: x_b + image_size, y_b:y_b + image_size, 0])
+        color_img_b = serialize(color_array[t_b, x_b: x_b + image_size, y_b:y_b + image_size, 0:3])
         gray_img_b = serialize(gray_array[t_b, x_b: x_b + image_size, y_b:y_b + image_size])
         cu = sys.getsizeof(custom_array[0, 1, 2])
         co = sys.getsizeof(color_array[0, 1, 2, 0])
