@@ -79,6 +79,9 @@ def make_tfrecords(srcdir, folder):
         if np.random.randint(0,99) < percentage_matching:
             # Generate an example of matched pair
             t_a = np.random.randint(0, set_info[0])
+            print(overlap_coeff*W)
+            print(set_info)
+            #print(set_info[1])
             x_a = np.random.randint(overlap_coeff*W, set_info[1] - (1.+overlap_coeff)*W)
             y_a = np.random.randint(overlap_coeff*H, set_info[2] - (1.+overlap_coeff)*H)
             x_b = np.random.randint(x_a - overlap_coeff*W, x_a + overlap_coeff*W)
