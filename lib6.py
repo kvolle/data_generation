@@ -5,7 +5,7 @@ import sys
 import os
 import scipy.io as sio
 
-key_frames = 5
+key_frames = 500
 overlap_coeff = 0.2 # Set such that at least 64% of the pixels overlap for matches
 
 number_of_matches = 5
@@ -82,6 +82,7 @@ unmatch_len = len(unmatched)
 
 # open the TFRecords files
 color_filename = './datasets/color.tfrecords'
+color_filename = './datasets/validation.tfrecords'
 color_writer = tf.python_io.TFRecordWriter(color_filename)
 custom_filename = './datasets/custo_.tfrecords'
 custom_writer = tf.python_io.TFRecordWriter(custom_filename)
@@ -126,13 +127,13 @@ for i in range(key_frames):
 
     # Create an example protocol buffer
     color_example = tf.train.Example(features=tf.train.Features(feature=color_features))
-    custom_example = tf.train.Example(features=tf.train.Features(feature=custom_features))
-    gray_example = tf.train.Example(features=tf.train.Features(feature=gray_features))
+#    custom_example = tf.train.Example(features=tf.train.Features(feature=custom_features))
+#    gray_example = tf.train.Example(features=tf.train.Features(feature=gray_features))
 
     # Serialize to string and write on the file
     color_writer.write(color_example.SerializeToString())
-    custom_writer.write(custom_example.SerializeToString())
-    gray_writer.write(gray_example.SerializeToString())
+#    custom_writer.write(custom_example.SerializeToString())
+#    gray_writer.write(gray_example.SerializeToString())
 
 color_writer.close()
 custom_writer.close()
