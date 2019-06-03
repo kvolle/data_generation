@@ -8,8 +8,8 @@ import scipy.io as sio
 key_frames = 5000
 
 percentage_matching = 50
-#folder='NewCollege'
-folder='CityCentre'
+folder='NewCollege'
+#folder='CityCentre'
 
 truth = sio.loadmat('./source/'+folder+'/GroundTruth.mat')
 truth_mat = truth['truth']
@@ -59,15 +59,16 @@ cap.release()
 #set_info = color_array.shape
 unmatched = []
 matched = []
-for i in range(truth_mat.shape[0]):
-    for j in range(i):
+for i in range(2, truth_mat.shape[0]):
+    for j in range(i-2, -1, -2): # -1 so the 0th element is used
         if truth_mat[i,j] != 0:
             matched.append((i,j))
         else:
             unmatched.append((i,j))
 match_len = len(matched)
 unmatch_len = len(unmatched)
-
+print('  Match: ' + str(match_len))
+print('Unmatch: ' + str(unmatch_len))
 # open the TFRecords files
 color_filename = './datasets/color_'+folder+'.tfrecords'
 #color_filename = './datasets/validation.tfrecords'
